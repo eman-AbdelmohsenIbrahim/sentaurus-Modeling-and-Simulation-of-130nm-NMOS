@@ -1,0 +1,81 @@
+(define Lg 0.13)
+(define t_ox 0.00289)
+(define LSD 0.195)
+(define LSDC 0.19)
+(define sub_t 0.289)
+(define xj 0.0867)
+
+
+(define y1 LSDC)
+(define y2 LSD)
+(define y3 (+ y2 Lg))
+(define y4 (+ y3 (- LSD LSDC)))
+(define y5 (+ y4 LSDC))
+
+(define x1 sub_t)
+(define x2 xj)
+(define x3 (- t_ox))
+
+(sdegeo:set-auto-region-naming OFF)
+(bound? (quote substrate))
+(sdegeo:create-rectangle (position 0 0 0) (position x1 y5 0) "Silicon" "substrate")
+(bound? (quote source))
+(sdegeo:create-rectangle (position 0 0 0) (position x2 y2 0) "Silicon" "source")
+(bound? (quote drain))
+(sdegeo:create-rectangle (position 0 y3 0) (position x2 y5 0) "Silicon" "drain")
+(sde:set-default-material "SiO2")
+(bound? (quote gate_oxide))
+(sdegeo:create-rectangle (position x3 y2 0) (position 0 y3 0) "SiO2" "gate_oxide")
+
+
+(sdegeo:fillet-2d (list (car (find-vertex-id (position x2 y2 0)))) x2)
+(sdegeo:fillet-2d (list (car (find-vertex-id (position x2 y3 0)))) x2)
+(sde:separate-lumps)
+
+(sdegeo:define-contact-set "S" 4 (color:rgb 1 0 0) "##")
+(sdegeo:define-contact-set "D" 4 (color:rgb 0 1 0) "##")
+(sdegeo:define-contact-set "G" 4 (color:rgb 0 0 1) "##")
+(sdegeo:define-contact-set "B" 4 (color:rgb 1 1 0) "##")
+(sdegeo:insert-vertex (position 0 y1 0))
+(sdegeo:insert-vertex (position 0 y4 0))
+
+
+(sdegeo:set-current-contact-set "S")
+(sdegeo:set-contact-edges (list (car (find-edge-id (position 0 (/ y1 2) 0)))) "S")
+(sdegeo:set-current-contact-set "D")
+(sdegeo:set-contact-edges (list (car (find-edge-id (position 0 (+ y4 (/ LSDC 2)) 0)))) "D")
+(sdegeo:set-current-contact-set "B")
+(sdegeo:set-contact-edges (list (car (find-edge-id (position x1 (/ y5 2) 0)))) "B")
+(sdegeo:set-current-contact-set "G")
+(sdegeo:set-contact-edges (list (car (find-edge-id (position x3 (/ y5 2) 0)))) "G")
+
+
+(sdedr:define-constant-profile "ConstantProfileDefinition.sub" "BoronActiveConcentration" 6.923e+17)
+(sdedr:define-constant-profile-region "ConstantProfilePlacement.sub" "ConstantProfileDefinition.sub" "substrate")
+(sdedr:define-constant-profile "ConstantProfileDefinition.s_d" "PhosphorusActiveConcentration" 6.923e+18)
+(sdedr:define-constant-profile-region "ConstantProfilePlacement.s" "ConstantProfileDefinition.s_d" "source")
+(sdedr:define-constant-profile "ConstantProfileDefinition.s_d" "PhosphorusActiveConcentration" 6.923e+18)
+(sdedr:define-constant-profile-region "ConstantProfilePlacement.d" "ConstantProfileDefinition.s_d" "drain")
+
+
+
+(sdedr:define-refeval-window "RefEvalWin.all" "Rectangle" (position x3 0 0.0) (position x1 y5 0.0))
+(sdedr:define-refinement-size "RefinementDefinition.all" 0.02 0.02 0.01 0.01)
+(sdedr:define-refinement-placement "RefinementPlacement.all" "RefinementDefinition.all" (list "window" "RefEvalWin.all"))
+
+
+
+(sdedr:define-refeval-window "RefEvalWin.ch" "Rectangle" (position x3 (- y2 x2) 0.0) (position x2 (+ y3 x2) 0.0))
+(sdedr:define-multibox-size "MultiboxDefinition.ch" 0.01 0.01 0.005 0.005 1 1.35)
+(sdedr:define-multibox-placement "MultiboxPlacement.ch" "MultiboxDefinition.ch" "RefEvalWin.ch")
+
+
+(sde:set-project-name "sde_dvs")
+(sdesnmesh:iocontrols "outputFile" "n@node@")
+(sde:set-meshing-command "snmesh")
+(sde:set-project-name "n@node@")
+(sdesnmesh:iocontrols "outputFile" "n@node@")
+(sde:build-mesh "" "sde_dvs")
+(system:command "svisual sde_dvs_msh.tdr &")
+(sde:save-model "n@node@")
+

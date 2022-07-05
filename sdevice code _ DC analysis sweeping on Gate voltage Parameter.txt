@@ -1,0 +1,100 @@
+File{
+   * Input Files
+   Grid="@tdr@"
+   * parameter="@parameter@"
+   * Output Files
+   Current="@plot@"
+   Plot="@tdrdat@"
+   Output="@log@"
+   ACExtract = "@acplot@"
+}
+
+Electrode{
+   {name="D" voltage=0.0}
+   {name="S" voltage=0.0}
+   {name="G" voltage=0.0 WorkFunction=4.5}
+   {name="B" voltage=0.0}
+}
+
+Physics{
+	AreaFactor=10
+	Mobility(DopingDependence eHighFieldsaturation( GradQuasiFermi ) hHighFieldsaturation( GradQuasiFermi ) Enormal)
+	EffectiveIntrinsicDensity( OldSlotboom )
+	Recombination( SRH(DopingDependence TempDependence) Auger Avalanche )
+}
+
+Physics ( MaterialInterface= "SiO2/Silicon" ){
+Traps(
+(Fixedcharge Conc= 5e+10 )
+)
+}
+
+Plot{
+   eDensity hDensity
+   eCurrent hCurrent
+   TotalCurrent/Vector eCurrent/Vector hCurrent/Vector
+   eMobility hMobility
+   eVelocity hVelocity
+   eEnormal hEnormal
+   ElectricField/Vector Potential SpaceCharge
+   eQuasiFermi hQuasiFermi
+   Potential Doping SpaceCharge
+   SRH Auger
+   AvalancheGeneration
+   DonorConcentration AcceptorConcentration
+   Doping
+   eGradQuasiFermi/Vector hGradQuasiFermi/Vector
+   eEparallel hEparallel
+   BandGap
+   BandGapNarrowing
+   Affinity
+   ConductionBand ValenceBand
+   eQuantumPotential
+}
+
+Math{
+   -CheckUndefinedModels
+   Number_Of_Threads=4
+   Extrapolate
+   Derivatives
+   * Avalderivatives
+   RelErrControl
+   Digits=5
+   ErRef(electron)=1.e10
+   ErRef(hole)=1.e10
+   Notdamped=50
+   Iterations=20
+   Directcurrent
+   Method=ParDiSo
+   Parallel= 2
+   *-VoronoiFaceBoxMethod
+   NaturalBoxMethod
+   Method=Blocked
+   SubMethod=Super
+   ACMethod=Blocked
+   ACSubMethod=Super
+   ImplicitACSystem
+}
+
+Solve {
+   *- Buildup of initial solution:
+   Coupled ( Iterations= 150){ Poisson eQuantumPotential }
+   Coupled { Poisson eQuantumPotential Electron Hole }
+
+   *- Bias drain to target bias
+   Quasistationary(
+	InitialStep= 1e-3 Increment= 1.2
+	MinStep= 1e-12 MaxStep= 0.1
+	Goal { Name= "D" Voltage= @V@}
+   ){ Coupled { Poisson Electron Hole } }
+
+   *- Gate voltage sweep
+   Quasistationary(
+	InitialStep= 1e-3 Increment= 1.2
+	MinStep= 1e-12 MaxStep= 0.1
+	Goal { Name= "G" Voltage=2}
+   ){Coupled {Poisson Electron Hole }}
+   
+
+}
+
